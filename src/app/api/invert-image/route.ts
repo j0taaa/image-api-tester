@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { url, image } = (await request.json()) as {
+    const { url, image, contentType } = (await request.json()) as {
       url?: string;
       image?: string;
+      contentType?: string;
     };
 
     if (!url || !image) {
@@ -14,12 +15,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const imageBuffer = Buffer.from(image, "base64");
+
     const apiResponse = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": contentType || "image/png",
       },
-      body: image,
+      body: imageBuffer,
     });
 
     if (!apiResponse.ok) {
@@ -29,10 +32,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const contentType = apiResponse.headers.get("content-type") || "image/png";
-    const result = await apiResponse.text();
+    const responseContentType =
+      apiResponse.headers.get("content-type") || contentType || "image/png";
+    const responseBuffer = Buffer.from(await apiResponse.arrayBuffer());
+    const result = responseBuffer.toString("base64");
 
-    return NextResponse.json({ result, contentType });
+    return NextResponse.json({ result, contentType: responseContentType });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
