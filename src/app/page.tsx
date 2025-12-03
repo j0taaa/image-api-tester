@@ -231,7 +231,7 @@ export default function Home() {
                   {imageLoading ? "Sending..." : "Send to API"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Body is the raw base64 image string.
+                  Backend forwards the raw image bytes from your selection.
                 </p>
               </div>
 
