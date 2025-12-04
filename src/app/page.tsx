@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
 const toBase64FromDataUrl = (dataUrl: string) => dataUrl.split(",")[1] ?? "";
+
+const DEFAULT_IMAGE_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HwAFgwJ/lYw/kwAAAABJRU5ErkJggg==";
+const DEFAULT_FILE_CONTENT_BASE64 =
+  "VGhpcyBpcyBhIGRlZmF1bHQgZmlsZSBmb3IgdGVzdGluZyB0aGUgemlwIEFQSS4=";
 
 export default function Home() {
   const [imageApiUrl, setImageApiUrl] = useState("");
@@ -24,6 +29,7 @@ export default function Home() {
   const [imageContentType, setImageContentType] = useState<string>("image/png");
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [useDefaultImage, setUseDefaultImage] = useState(false);
 
   const [zipFiles, setZipFiles] = useState<
     { filename: string; content: string; size: number }[]
@@ -34,6 +40,7 @@ export default function Home() {
   >(null);
   const [zipLoading, setZipLoading] = useState(false);
   const [zipError, setZipError] = useState<string | null>(null);
+  const [useDefaultZip, setUseDefaultZip] = useState(false);
 
   const imageReady = useMemo(
     () => Boolean(imageApiUrl && selectedImageBase64),
@@ -46,6 +53,8 @@ export default function Home() {
   );
 
   const handleImageSelection = (file: File | null) => {
+    setUseDefaultImage(false);
+
     if (!file) {
       setSelectedImageBase64(null);
       setSelectedImagePreview(null);
@@ -62,6 +71,8 @@ export default function Home() {
   };
 
   const handleZipSelection = (files: FileList | null) => {
+    setUseDefaultZip(false);
+
     if (!files) {
       setZipFiles([]);
       return;
@@ -92,6 +103,37 @@ export default function Home() {
       .then((encoded) => setZipFiles(encoded))
       .catch(() => setZipError("Could not read selected files."));
   };
+
+  useEffect(() => {
+    if (useDefaultImage) {
+      const defaultPreview = `data:image/png;base64,${DEFAULT_IMAGE_BASE64}`;
+      setSelectedImagePreview(defaultPreview);
+      setSelectedImageBase64(DEFAULT_IMAGE_BASE64);
+      setImageError(null);
+      return;
+    }
+
+    setSelectedImagePreview(null);
+    setSelectedImageBase64(null);
+  }, [useDefaultImage]);
+
+  useEffect(() => {
+    if (useDefaultZip) {
+      const defaultContent = atob(DEFAULT_FILE_CONTENT_BASE64);
+      const defaultSize = new TextEncoder().encode(defaultContent).length;
+      setZipFiles([
+        {
+          filename: "sample.txt",
+          content: DEFAULT_FILE_CONTENT_BASE64,
+          size: defaultSize,
+        },
+      ]);
+      setZipError(null);
+      return;
+    }
+
+    setZipFiles([]);
+  }, [useDefaultZip]);
 
   const submitImage = async () => {
     if (!imageReady || !selectedImageBase64) return;
@@ -204,10 +246,26 @@ export default function Home() {
                   id="image-upload"
                   type="file"
                   accept="image/*"
+                  disabled={useDefaultImage}
                   onChange={(event) =>
                     handleImageSelection(event.target.files?.[0] ?? null)
                   }
                 />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    id="use-default-image"
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={useDefaultImage}
+                    onChange={(event) => setUseDefaultImage(event.target.checked)}
+                  />
+                  <Label
+                    htmlFor="use-default-image"
+                    className="text-sm text-muted-foreground"
+                  >
+                    Use default sample image
+                  </Label>
+                </div>
                 {selectedImagePreview && (
                   <div className="mt-2 overflow-hidden rounded-md border bg-card p-2">
                     <p className="mb-2 text-xs text-muted-foreground">
@@ -281,8 +339,24 @@ export default function Home() {
                   id="zip-upload"
                   type="file"
                   multiple
+                  disabled={useDefaultZip}
                   onChange={(event) => handleZipSelection(event.target.files)}
                 />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    id="use-default-zip"
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={useDefaultZip}
+                    onChange={(event) => setUseDefaultZip(event.target.checked)}
+                  />
+                  <Label
+                    htmlFor="use-default-zip"
+                    className="text-sm text-muted-foreground"
+                  >
+                    Use default sample file
+                  </Label>
+                </div>
                 {zipFiles.length > 0 && (
                   <div className="rounded-md border bg-card p-2 text-sm">
                     <p className="mb-1 text-xs text-muted-foreground">
